@@ -16,7 +16,6 @@ app.get('/api/ping', (_req, res) => {
   res.json({ ok: true, msg: 'api funcionando' });
 });
 
-// Test DB rápido (ajusta a tu modelo real: usuario)
 app.get('/api/test-db', async (_req, res) => {
   try {
     const users = await prisma.usuario.findMany();
@@ -25,11 +24,8 @@ app.get('/api/test-db', async (_req, res) => {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
-
-// 👉 aquí enganchamos las rutas de desarrollo (seed)
 app.use('/api/dev', devRoutes);
 
-// raíz opcional
 app.get('/', (_req, res) => {
   res.send('API OK');
 });
