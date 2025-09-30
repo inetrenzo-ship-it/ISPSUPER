@@ -1,4 +1,3 @@
-// src/server.ts
 import express from 'express';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
@@ -11,14 +10,14 @@ const prisma = new PrismaClient();
 
 app.use(express.json());
 
-// ---- RUTAS BÁSICAS ----
+// RUTA DE SALUD
 app.get('/api/ping', (_req, res) => {
   res.json({ ok: true, msg: 'api funcionando' });
 });
 
+// RUTA DB TEST (no rompe si no hay tabla todavía)
 app.get('/api/test-db', async (_req, res) => {
   try {
-    // leerá usuarios si existen; si no, igual responde ok
     const users = await prisma.user.findMany().catch(() => []);
     res.json({ ok: true, usersCount: users.length });
   } catch (e: any) {
@@ -26,7 +25,7 @@ app.get('/api/test-db', async (_req, res) => {
   }
 });
 
-// SEED ADMIN DIRECTO EN EL SERVER (GET con query)
+// SEED ADMIN
 app.get('/api/dev/seed-admin', async (req, res) => {
   try {
     const email = String(req.query.email || 'admin@demo.com').toLowerCase();
@@ -36,23 +35,24 @@ app.get('/api/dev/seed-admin', async (req, res) => {
     const admin = await prisma.user.upsert({
       where: { email },
       update: { passwordHash, role: 'ADMIN' as any },
-      create: { email, passwordHash, role: 'ADMIN' as any },
+      create: { email, passwordHash, role: 'ADMIN' as any }
     });
 
-    res.json({ ok: true, adminId: admin.id, email: admin.email });
+    res.json({ ok: true, adminId: (admin as any).id, email: (admin as any).email });
   } catch (e: any) {
-    res.status(500).json({ ok: false, error: e.message || String(e) });
+    res.status(500).json({ ok: false, error: e.message || 'seed failed' });
   }
 });
 
-// raíz
+// ROOT
 app.get('/', (_req, res) => {
   res.send('API OK');
 });
 
-// ---- LISTAR RUTAS REGISTRADAS EN CONSOLA ----
+// LISTAR RUTAS EN LOG
 function listRoutes() {
   const routes: string[] = [];
+  // @ts-ignore
   app._router.stack.forEach((m: any) => {
     if (m.route && m.route.path) {
       const methods = Object.keys(m.route.methods)
