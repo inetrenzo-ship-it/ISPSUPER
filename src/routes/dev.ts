@@ -5,11 +5,6 @@ import bcrypt from 'bcryptjs';
 const router = Router();
 const prisma = new PrismaClient();
 
-/**
- * GET /api/dev/seed-admin?email=...&password=...
- * Crea o actualiza un usuario ADMIN con el email y password enviados.
- * (Usa el modelo `usuario` que ya estás usando en server.ts)
- */
 router.get('/seed-admin', async (req, res) => {
   try {
     const email = String(req.query.email || 'admin@demo.com').toLowerCase();
