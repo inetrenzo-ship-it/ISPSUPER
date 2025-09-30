@@ -1,33 +1,34 @@
-// src/routes/dev.ts
 import { Router } from 'express';
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const router = Router();
 const prisma = new PrismaClient();
 
-// GET /api/dev/seed-admin?email=...&password=...
+/**
+ * GET /api/dev/seed-admin?email=...&password=...
+ * Crea o actualiza un usuario ADMIN con el email y password enviados.
+ * (Usa el modelo `usuario` que ya estás usando en server.ts)
+ */
 router.get('/seed-admin', async (req, res) => {
-  const email = (req.query.email as string) || '';
-  const password = (req.query.password as string) || '';
-
-  if (!email || !password) {
-    return res.status(400).json({ ok: false, error: 'Falta email o password' });
-  }
-
   try {
-    const passwordHash = await bcrypt.hash(password, 10);
+    const email = String(req.query.email || 'admin@demo.com').toLowerCase();
+    const password = String(req.query.password || 'Admin123!');
+    const hash = await bcrypt.hash(password, 10);
 
-    const admin = await prisma.user.upsert({
+    const admin = await prisma.usuario.upsert({
       where: { email },
-      update: { passwordHash, role: Role.ADMIN },
-      create: { email, passwordHash, role: Role.ADMIN },
+      update: { passwordHash: hash, role: 'ADMIN' as any },
+      create: { email, passwordHash: hash, role: 'ADMIN' as any },
     });
 
-    return res.json({ ok: true, adminId: admin.id, email: admin.email });
-  } catch (err: any) {
-    console.error('seed-admin error:', err);
-    return res.status(500).json({ ok: false, error: err.message || 'Error interno' });
+    res.json({
+      ok: true,
+      admin: { id: admin.id, email: admin.email, role: admin.role },
+    });
+  } catch (e: any) {
+    console.error(e);
+    res.status(500).json({ ok: false, error: e.message || 'seed failed' });
   }
 });
 
