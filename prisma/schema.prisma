@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+enum Role {
+  ADMIN
+  CAJA
+}
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role
+  commerceId   String?
+  commerce     Commerce? @relation(fields: [commerceId], references: [id])
+  createdAt    DateTime @default(now())
+  salesAsCashier Sale[] @relation("SalesByCashier")
+}
+model Commerce {
+  id             String   @id @default(cuid())
+  name           String
+  cuit           String
+  locality       String
+  benefitPercent Float
+  users          User[]
+  sales          Sale[]
+  renditions     WeeklyRendition[]
+  createdAt      DateTime @default(now())
+}
+model Client {
+  id               String   @id @default(cuid())
+  lastName         String
+  firstName        String
+  dni              String   @unique
+  phone            String?
+  plan             String
+  planPrice        Float
+  enabled          Boolean  @default(true)
+  customCap        Float?
+  carryoverBalance Float    @default(0)
+  sales            Sale[]
+  createdAt        DateTime @default(now())
+}
+model Sale {
+  id             String   @id @default(cuid())
+  createdAt      DateTime @default(now())
+  date           DateTime @default(now())
+  commerceId     String
+  commerce       Commerce @relation(fields: [commerceId], references: [id])
+  cashierId      String
+  cashier        User     @relation("SalesByCashier", fields: [cashierId], references: [id])
+  clientId       String
+  client         Client   @relation(fields: [clientId], references: [id])
+  amount         Float
+  ticketNumber   String
+  benefitPercent Float
+  benefitAmount  Float
+  atypical       Boolean  @default(false)
+  @@index([commerceId, date])
+  @@unique([commerceId, ticketNumber, date])
+}
+model WeeklyRendition {
+  id            String   @id @default(cuid())
+  commerceId    String
+  commerce      Commerce @relation(fields: [commerceId], references: [id])
+  startDate     DateTime
+  endDate       DateTime
+  status        RenditionStatus @default(OPEN)
+  grossBenefits Float     @default(0)
+  paidAt        DateTime?
+  @@index([commerceId, startDate, endDate])
+}
+enum RenditionStatus {
+  OPEN
+  CLOSED
+  PAID
+}
+model GlobalConfig {
+  id                  Int     @id @default(1)
+  topeGlobalByPlan    Boolean @default(true)
+  carryoverOn         Boolean @default(true)
+  perClientDailyLimit Float?
+  perTicketLimit      Float?
+}
