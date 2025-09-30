@@ -1,0 +1,1 @@
+{version:5.22.0,projects:[{schema:./prisma/schema.prisma,emit:./node_modules/.prisma/client}]}
