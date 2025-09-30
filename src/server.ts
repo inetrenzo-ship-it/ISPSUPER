@@ -67,3 +67,8 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log('Servidor escuchando en puerto', PORT);
 });
+// arriba con los otros imports
+import devRoutes from './routes/dev';
+
+// ...luego de crear app y antes de app.listen(...)
+app.use('/api/dev', devRoutes);
