@@ -1,6 +1,7 @@
+// src/server.ts
 import express from 'express';
 import dotenv from 'dotenv';
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 dotenv.config();
@@ -10,49 +11,37 @@ const prisma = new PrismaClient();
 
 app.use(express.json());
 
-// Salud
+// ---- RUTAS BÁSICAS ----
 app.get('/api/ping', (_req, res) => {
   res.json({ ok: true, msg: 'api funcionando' });
 });
 
-// Test DB (ajusta al nombre real de tu modelo de usuarios)
-// Si tu modelo en prisma/schema.prisma es `User { ... }`, usá prisma.user
-// Si tu modelo es `Usuario { ... }`, usá prisma.usuario
 app.get('/api/test-db', async (_req, res) => {
   try {
-    const users = await prisma.user.findMany(); // <-- CAMBIAR a prisma.usuario si tu modelo se llama Usuario
-    res.json({ ok: true, count: users.length });
+    // leerá usuarios si existen; si no, igual responde ok
+    const users = await prisma.user.findMany().catch(() => []);
+    res.json({ ok: true, usersCount: users.length });
   } catch (e: any) {
-    res.status(500).json({ ok: false, error: e.message });
+    res.status(500).json({ ok: false, error: e.message || String(e) });
   }
 });
 
-/**
- * SEED ADMIN (EN LINEA, SIN ROUTER APARTE)
- * GET /api/dev/seed-admin?email=...&password=...
- *
- * IMPORTANTE:
- * - Si tu modelo en schema.prisma es `User`, los campos suelen ser: id, email, passwordHash, role, createdAt...
- * - Si tu modelo es `Usuario`, ajustá los nombres como los tengas (por ej: usuario_id, hash_password, rol).
- */
+// SEED ADMIN DIRECTO EN EL SERVER (GET con query)
 app.get('/api/dev/seed-admin', async (req, res) => {
   try {
     const email = String(req.query.email || 'admin@demo.com').toLowerCase();
     const password = String(req.query.password || 'Admin123!');
-
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Si tu modelo es `User`, dejá esto como prisma.user y Role.ADMIN.
-    // Si tu modelo es `Usuario`, cambiá a prisma.usuario y el enum/strings que uses (p.ej. 'ADMIN').
     const admin = await prisma.user.upsert({
       where: { email },
-      update: { passwordHash, role: Role.ADMIN },
-      create: { email, passwordHash, role: Role.ADMIN },
+      update: { passwordHash, role: 'ADMIN' as any },
+      create: { email, passwordHash, role: 'ADMIN' as any },
     });
 
-    res.json({ ok: true, adminId: (admin as any).id, email: (admin as any).email });
+    res.json({ ok: true, adminId: admin.id, email: admin.email });
   } catch (e: any) {
-    res.status(500).json({ ok: false, error: e.message || 'seed failed' });
+    res.status(500).json({ ok: false, error: e.message || String(e) });
   }
 });
 
@@ -61,7 +50,24 @@ app.get('/', (_req, res) => {
   res.send('API OK');
 });
 
+// ---- LISTAR RUTAS REGISTRADAS EN CONSOLA ----
+function listRoutes() {
+  const routes: string[] = [];
+  app._router.stack.forEach((m: any) => {
+    if (m.route && m.route.path) {
+      const methods = Object.keys(m.route.methods)
+        .filter(k => m.route.methods[k])
+        .map(k => k.toUpperCase())
+        .join(',');
+      routes.push(`${methods} ${m.route.path}`);
+    }
+  });
+  console.log('Rutas registradas:');
+  routes.forEach(r => console.log('  -', r));
+}
+
 const PORT = Number(process.env.PORT || 8080);
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+  listRoutes();
 });
