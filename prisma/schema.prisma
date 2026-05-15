@@ -85,3 +85,29 @@ model GlobalConfig {
   perClientDailyLimit Float?
   perTicketLimit      Float?
 }
+
+enum ChatMode {
+  AUTO
+  MANUAL
+}
+
+model WhatsAppChat {
+  id        String   @id @default(cuid())
+  jid       String   @unique
+  name      String?
+  mode      ChatMode @default(AUTO)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messages  WhatsAppMessage[]
+}
+
+model WhatsAppMessage {
+  id        String       @id @default(cuid())
+  chatId    String
+  chat      WhatsAppChat @relation(fields: [chatId], references: [id])
+  fromMe    Boolean
+  body      String
+  timestamp DateTime     @default(now())
+
+  @@index([chatId, timestamp])
+}

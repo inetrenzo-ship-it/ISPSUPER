@@ -11,7 +11,7 @@ router.get('/seed-admin', async (req, res) => {
     const password = String(req.query.password || 'Admin123!');
     const hash = await bcrypt.hash(password, 10);
 
-    const admin = await prisma.usuario.upsert({
+    const admin = await (prisma as any).usuario.upsert({
       where: { email },
       update: { passwordHash: hash, role: 'ADMIN' as any },
       create: { email, passwordHash: hash, role: 'ADMIN' as any },
